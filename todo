@@ -1,0 +1,66 @@
+delete selection before pasting or entering char
+use many more terminfo capabilities, init with common strings but replace
+  or perhaps throw out terminfo altogether
+fix bold fonts inconsistency
+copy GID and perhaps other fstat fields to new file when saving
+support '~' convention in file names
+allow scroll so that last line is at top of screen
+fix cut and paste
+perhaps some mouse support
+add goto line and goto line/col command line switches
+auto resize screen with multiple views, handle screen sized to too small
+handle padding if present
+resolve terminfo deficiencies: just need key names bound to functions,
+	intermediate form of esc seq is necessary, are capabilities?
+line drawing and line overflow uses PC byte values, need to abstract
+ensure win32 and dos versions work
+
+Bugs:
+	non-cr-lf files still get cr sometimes, check auto-indent
+	can't open file with spaces in name or path
+	scroll to end of line
+	search messed up on cr-lf
+	search and replace loses dotrow
+	empty line is selected like a tab
+
+handle close and break events in win32
+support windows clipboard
+move dovepath to per-directory
+
+. more history lists
+
+.	Needed functions:
+		Save all changed with out exiting.
+		Improved DOS/SHELL access functions.
+.	Remove functions that could be done with macros, like Dyslexic key.
+.	Add multiple .cfg files to emulate other editors.
+.	Add option to autoindent mode to indent as far as possible, such
+	as to right-most tab on the line (bullet mode).
+.	/Config file option
+.	save all modes in buffer header rather than global.
+.	macros
+		really need to have macro language
+		add named macros and auto init macros based on file extensions
+		operate at function level, not keystroke level
+		add permanent macro dirty flag to prompt for saving on exit
+		macros are command types like REPT, INSERTCHAR, etc, the
+			macro type should allow for permanent or temporary macros
+		maybe each macro could be abort on failure, or prompt for
+			abort/continue on failure of certain functions while recording
+		add export/import ASCII functions or 
+		wrap display macros screen, allow for multiple screens
+		macros should be able to call other macros, macro stack,
+			but must check for and disallow indirect recursive calls
+
+CONSIDER
+.	regular expressions in search, replace
+.	pick lists?, remember which files and where?, environment configuration?
+.	undo, redo?
+.	Four bookmark keys
+.	Add popup window functions for select file, buffer manipulation.
+.	Possibly attach modes to each buffer, like DOT and MARK:
+	overwrite, wordwrap, indent, tabs. Automatic macro that is
+	executed on each file when it is edited by extension.
+.	A macro key could also have its own cut buffer, allowing
+	a key to be assigned to a marked block, rather than recording a
+	block as a macro as is done now.
