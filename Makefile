@@ -14,8 +14,7 @@ else
 TARGET = dove
 PLAT = GNU
 MOD = gnu
-#LDFLAGS = -lncurses
-LDFLAGS = -ltinfo
+LDFLAGS =
 endif
 
 ifdef DEBUG

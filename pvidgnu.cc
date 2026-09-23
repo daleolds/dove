@@ -10,18 +10,6 @@
 
 #include <assert.h>
 
-//#include <curses.h>
-#define COLOR_BLACK	0
-#define COLOR_RED	1
-#define COLOR_GREEN	2
-#define COLOR_YELLOW	3
-#define COLOR_BLUE	4
-#define COLOR_MAGENTA	5
-#define COLOR_CYAN	6
-#define COLOR_WHITE	7
-#define ERR     (-1)
-
-#include <ncursesw/term.h>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <errno.h>
@@ -43,17 +31,19 @@ unsigned videoRows, videoCols;
 #define MAX_COLS 8 * 1024
 
 static struct termios DCShellModes, DCTermModes;
-static char *SeqCursorAddress, *SeqCursorModeStart, *SeqCursorModeEnd;
-static char *SeqClearScreen, *SeqSetBackColor, *SeqSetForeColor;
-static char *SeqCursorGone, *SeqCursorNorm, *SeqCursorHigh;
-static const char *SeqStartBorders, *SeqEndBorders;
-static char *SeqSetBold, *SeqClearAttributes;
+
+// fixed xterm/ANSI sequences, used instead of looking them up in terminfo
+static const char SeqCursorModeStart[] = "\033[?1049h", SeqCursorModeEnd[] = "\033[?1049l";
+static const char SeqClearScreen[] = "\033[H\033[2J";
+static const char SeqCursorGone[] = "\033[?25l", SeqCursorNorm[] = "\033[?12l\033[?25h";
+static const char SeqCursorHigh[] = "\033[?12;25h";
+static const char SeqStartBorders[] = "\033(0", SeqEndBorders[] = "\033(B";
+static const char SeqSetBold[] = "\033[1m", SeqClearAttributes[] = "\033[m";
 static unsigned TTYCurRow, TTYCurCol, UserCurRow, UserCurCol;
 static VCHAR *Screen = 0;
 static CURSORTYPE UserCursorType = CURSOR_SMALL, TTYCursorType = CURSOR_SMALL;
 static CURSORFAKE UserCursorFake = CF_TTY_ONLY;
 static VBYTE UserFakeCursorAttr, CurAttr, RealCursorAttr;
-static char SeqANSIForeColor[] = "\033[3%dm", SeqANSIBackColor[] = "\033[4%dm";
 static bool CurBold = false;
 
 //---------------------------------------------------------------------------
@@ -62,10 +52,6 @@ static void ResetGlobals()
 	videoRows = videoCols = 0;
 	memset(&DCShellModes, 0, sizeof DCShellModes);
 	memset(&DCTermModes, 0, sizeof DCTermModes);
-	SeqCursorAddress = SeqCursorModeStart = SeqCursorModeEnd = 0;
-	SeqClearScreen = SeqSetBackColor = SeqSetForeColor = 0;
-	SeqCursorGone = SeqCursorNorm = SeqCursorHigh = 0;
-	SeqStartBorders = SeqEndBorders = SeqSetBold = SeqClearAttributes = 0;
 	TTYCurRow = TTYCurCol = UserCurRow = UserCurCol = 0;
 	delete Screen;
 	Screen = 0;
@@ -77,213 +63,175 @@ static void ResetGlobals()
 }
 
 //---------------------------------------------------------------------------
-// mapping of terminfo capability strings to key values
+// mapping of xterm, Linux console, screen and tmux key sequences to key values
 
 struct CM
 {
-	const char *capName;
 	const char *capSeq;
 	unsigned seqLen;
 	unsigned key;
 } CapMap[] =
 {
 	/* arrow keys */
-	{0, "\x1b[D", 0, LEFT},
-	{"kcub1", 0, 0, LEFT},
-	{0, "\x1bOD", 0, LEFT},
-	{0, "\x1b[d", 0, SHIFT | LEFT},
-	{"kLFT", 0, 0, SHIFT | LEFT},
-	{0, "\x1b[1;2D", 0, SHIFT | LEFT},
-	{0, "\x1b[1;3D", 0, ALT | LEFT},
-//	{0, "\x1b\x1b[D", 0, ALT | LEFT},
-//	{0, "\x1b\x1b[d", 0, ALT | SHIFT | LEFT},
-	{0, "\x1b[1;4D", 0, ALT | SHIFT | LEFT},
-	{0, "\x1b[1;5D", 0, DCTRL | LEFT},
-	{0, "\x1bOd", 0, DCTRL | LEFT},
-	{0, "\x1b[1;6D", 0, DCTRL | SHIFT | LEFT},
+	{"\x1b[D", 0, LEFT},
+	{"\x1bOD", 0, LEFT},
+	{"\x1b[d", 0, SHIFT | LEFT},
+	{"\x1b[1;2D", 0, SHIFT | LEFT},
+	{"\x1b[1;3D", 0, ALT | LEFT},
+//	{"\x1b\x1b[D", 0, ALT | LEFT},
+//	{"\x1b\x1b[d", 0, ALT | SHIFT | LEFT},
+	{"\x1b[1;4D", 0, ALT | SHIFT | LEFT},
+	{"\x1b[1;5D", 0, DCTRL | LEFT},
+	{"\x1bOd", 0, DCTRL | LEFT},
+	{"\x1b[1;6D", 0, DCTRL | SHIFT | LEFT},
 
-	{0, "\x1b[B", 0, DOWN},
-	{"kcud1", 0, 0, DOWN},
-	{0, "\x1bOB", 0, DOWN},
-	{"cud1", 0, 0, DOWN},
-	{0, "\x1b[1;2B", 0, SHIFT | DOWN},
-	{"kind", 0, 0, SHIFT | DOWN},
-	{0, "\x1b[b", 0, SHIFT | DOWN},
-	{0, "\x1b[1;3B", 0, ALT | DOWN},
-//	{0, "\x1b\x1b[B", 0, ALT | DOWN},
-	{0, "\x1b[1;4B", 0, ALT | SHIFT | DOWN},
-//	{0, "\x1b\x1b[b", 0, ALT | SHIFT | DOWN},
-	{0, "\x1b[1;5B", 0, DCTRL | DOWN},
-	{0, "\x1bOb", 0, DCTRL | DOWN},
-	{0, "\x1b[1;6B", 0, DCTRL | SHIFT | DOWN},
+	{"\x1b[B", 0, DOWN},
+	{"\x1bOB", 0, DOWN},
+	{"\x1b[1;2B", 0, SHIFT | DOWN},
+	{"\x1b[b", 0, SHIFT | DOWN},
+	{"\x1b[1;3B", 0, ALT | DOWN},
+//	{"\x1b\x1b[B", 0, ALT | DOWN},
+	{"\x1b[1;4B", 0, ALT | SHIFT | DOWN},
+//	{"\x1b\x1b[b", 0, ALT | SHIFT | DOWN},
+	{"\x1b[1;5B", 0, DCTRL | DOWN},
+	{"\x1bOb", 0, DCTRL | DOWN},
+	{"\x1b[1;6B", 0, DCTRL | SHIFT | DOWN},
 
-	{0, "\x1bOC", 0, RIGHT},
-	{"kcuf1", 0, 0, RIGHT},
-	{0, "\x1b[C", 0, RIGHT},
-	{"cuf1", 0, 0, RIGHT},
-	{0, "\x1b[c", 0, SHIFT | RIGHT},
-	{"kRIT", 0, 0, SHIFT | RIGHT},
-	{0, "\x1b[1;2C", 0, SHIFT | RIGHT},
-//	{0, "\x1b\x1b[C", 0, ALT | RIGHT},
-	{0, "\x1b[1;3C", 0, ALT | RIGHT},
-	{0, "\x1b[1;4C", 0, ALT | SHIFT | RIGHT},
-//	{0, "\x1b\x1b[c", 0, ALT | SHIFT | RIGHT},
-	{0, "\x1b[1;5C", 0, DCTRL | RIGHT},
-	{0, "\x1bOc", 0, DCTRL | RIGHT},
-	{0, "\x1b[1;6C", 0, DCTRL | SHIFT | RIGHT},
+	{"\x1bOC", 0, RIGHT},
+	{"\x1b[C", 0, RIGHT},
+	{"\x1b[c", 0, SHIFT | RIGHT},
+	{"\x1b[1;2C", 0, SHIFT | RIGHT},
+//	{"\x1b\x1b[C", 0, ALT | RIGHT},
+	{"\x1b[1;3C", 0, ALT | RIGHT},
+	{"\x1b[1;4C", 0, ALT | SHIFT | RIGHT},
+//	{"\x1b\x1b[c", 0, ALT | SHIFT | RIGHT},
+	{"\x1b[1;5C", 0, DCTRL | RIGHT},
+	{"\x1bOc", 0, DCTRL | RIGHT},
+	{"\x1b[1;6C", 0, DCTRL | SHIFT | RIGHT},
 
-	{0, "\x1bOA", 0, UP},
-	{"kcuu1", 0, 0, UP},
-	{0, "\x1b[A", 0, UP},
-	{"cuu1", 0, 0, UP},
-	{0, "\x1b[1;2A", 0, SHIFT | UP},
-	{"kri", 0, 0, SHIFT | UP},
-	{0, "\x1b[a", 0, SHIFT | UP},
-//	{0, "\x1b\x1b[A", 0, ALT | UP},
-	{0, "\x1b[1;3A", 0, ALT | UP},
-//	{0, "\x1b\x1b[a", 0, ALT | SHIFT | UP},
-	{0, "\x1b[1;4A", 0, ALT | SHIFT | UP},
-	{0, "\x1bOa", 0, DCTRL | UP},
-	{0, "\x1b[1;[5A", 0, DCTRL | UP},
-	{0, "\x1b[1;[6A", 0, DCTRL | SHIFT | UP},
+	{"\x1bOA", 0, UP},
+	{"\x1b[A", 0, UP},
+	{"\x1b[1;2A", 0, SHIFT | UP},
+	{"\x1b[a", 0, SHIFT | UP},
+//	{"\x1b\x1b[A", 0, ALT | UP},
+	{"\x1b[1;3A", 0, ALT | UP},
+//	{"\x1b\x1b[a", 0, ALT | SHIFT | UP},
+	{"\x1b[1;4A", 0, ALT | SHIFT | UP},
+	{"\x1bOa", 0, DCTRL | UP},
+	{"\x1b[1;5A", 0, DCTRL | UP},
+	{"\x1b[1;6A", 0, DCTRL | SHIFT | UP},
 
 	/* enter, backspace, tab */
-	{0, "\r", 0, ENTER},
-	{"cr", 0, 0, ENTER},
-	{0, "\r", 0, ENTER},
-	{"kent", 0, 0, ENTER},
-	{0, "\n", 0, DCTRL | ENTER},
-	{"cud1", 0, 0, DCTRL | ENTER},
-	{0, "\x1b\n", 0, ALT | ENTER},
+	{"\r", 0, ENTER},
+	{"\n", 0, DCTRL | ENTER},
+	{"\x1b\n", 0, ALT | ENTER},
 
-	{0, "\t", 0, TAB},
-	{"ht", 0, 0, TAB},
-	{0, "\x1b[Z", 0, SHIFT | TAB},
-	{"kcbt", 0, 0, SHIFT | TAB},
-	{0, "\x7f", 0, BSP},
-	{"kbs", 0, 0, BSP},
-	{0, "\x1b\x7f", 0, ALT | BSP},
-	{0, "\x08", 0, DCTRL | BSP},
-	{"cub1", 0, 0, DCTRL | BSP},
+	{"\t", 0, TAB},
+	{"\x1b[Z", 0, SHIFT | TAB},
+	{"\x1b\t", 0, SHIFT | TAB}, // Linux console
+	{"\x7f", 0, BSP},
+	{"\x1b\x7f", 0, ALT | BSP},
+	{"\x08", 0, DCTRL | BSP},
 
 	/* home, end, page up/down, insert, delete */
-	{0, "\x1b[7~", 0, HOME},
-	{"khome", 0, 0, HOME},
-	{0, "\x1bOH", 0, HOME},
-	{"home", 0, 0, HOME},
-	{0, "\x1b[1~", 0, HOME},
-	{0, "\x1b[7$", 0, SHIFT | HOME},
-	{"kHOM", 0, 0, SHIFT | HOME},
-	{0, "\x1b[7^", 0, DCTRL | HOME},
-	{0, "\x1b[7@", 0, DCTRL | SHIFT | HOME},
+	{"\x1b[7~", 0, HOME},
+	{"\x1bOH", 0, HOME},
+	{"\x1b[H", 0, HOME},
+	{"\x1b[1~", 0, HOME},
+	{"\x1b[7$", 0, SHIFT | HOME},
+	{"\x1b[1;2H", 0, SHIFT | HOME},
+	{"\x1b[7^", 0, DCTRL | HOME},
+	{"\x1b[7@", 0, DCTRL | SHIFT | HOME},
 
-	{0, "\x1b[F", 0, END},
-	{0, "\x1bOF", 0, END},
-	{"kend", 0, 0, END},
-	{0, "\x1b[8~", 0, END},
-	{"kslt", 0, 0, END},
-	{0, "\x1b[4~", 0, END},
-	{0, "\x1b[8$", 0, SHIFT | END},
-	{"kEND", 0, 0, SHIFT | END},
-	{0, "\x1b[8^", 0, DCTRL | END},
-	{"kel", 0, 0, DCTRL | END},
-	{0, "\x1b[8@", 0, DCTRL | SHIFT | END},
+	{"\x1b[F", 0, END},
+	{"\x1bOF", 0, END},
+	{"\x1b[8~", 0, END},
+	{"\x1b[4~", 0, END},
+	{"\x1b[8$", 0, SHIFT | END},
+	{"\x1b[1;2F", 0, SHIFT | END},
+	{"\x1b[8^", 0, DCTRL | END},
+	{"\x1b[8@", 0, DCTRL | SHIFT | END},
 
-	{0, "\x1b[6~", 0, PGDN},
-	{"knp", 0, 0, PGDN},
-	{0, "\x1b[6^", 0, DCTRL | PGDN},
-	{0, "\x1b[6;5~", 0, DCTRL | PGDN},
-	{0, "\x1b[6;3~", 0, ALT | PGDN},
+	{"\x1b[6~", 0, PGDN},
+	{"\x1b[6^", 0, DCTRL | PGDN},
+	{"\x1b[6;5~", 0, DCTRL | PGDN},
+	{"\x1b[6;3~", 0, ALT | PGDN},
 
-	{0, "\x1b[5~", 0, PGUP},
-	{"kpp", 0, 0, PGUP},
-	{0, "\x1b[5^", 0, DCTRL | PGUP},
-	{0, "\x1b[5;5~", 0, DCTRL | PGUP},
-	{0, "\x1b[5;3~", 0, ALT | PGUP},
+	{"\x1b[5~", 0, PGUP},
+	{"\x1b[5^", 0, DCTRL | PGUP},
+	{"\x1b[5;5~", 0, DCTRL | PGUP},
+	{"\x1b[5;3~", 0, ALT | PGUP},
 
-	{"ich1", 0, 0, INS},
-	{0, "\x1b[2~", 0, INS},
-	{"kich1", 0, 0, INS},
-	{0, "\x1b[2;3~", 0, ALT | INS},
-	{0, "\x1b[2^", 0, DCTRL | INS},
-	{0, "\x1b[2@", 0, DCTRL | SHIFT | INS},
+	{"\x1b[2~", 0, INS},
+	{"\x1b[2;3~", 0, ALT | INS},
+	{"\x1b[2^", 0, DCTRL | INS},
+	{"\x1b[2@", 0, DCTRL | SHIFT | INS},
 
-	{"dch1", 0, 0, DEL},
-	{0, "\x1b[3~", 0, DEL},
-	{"kdch1", 0, 0, DEL},
-	{0, "\x1b[3;2~", 0, SHIFT | DEL},
-	{"kDC", 0, 0, SHIFT | DEL},
-	{0, "\x1b[3$", 0, SHIFT | DEL},
-	{0, "\x1b[3;3~", 0, ALT | DEL},
-	{0, "\x1b[3;5~", 0, DCTRL | DEL},
-	{0, "\x1b[3^", 0, DCTRL | DEL},
-	{0, "\x1b[3@", 0, DCTRL | SHIFT | DEL},
+	{"\x1b[3~", 0, DEL},
+	{"\x1b[3;2~", 0, SHIFT | DEL},
+	{"\x1b[3$", 0, SHIFT | DEL},
+	{"\x1b[3;3~", 0, ALT | DEL},
+	{"\x1b[3;5~", 0, DCTRL | DEL},
+	{"\x1b[3^", 0, DCTRL | DEL},
+	{"\x1b[3@", 0, DCTRL | SHIFT | DEL},
 
 	/* function keys */
-	{0, "\x1bOP", 0, F1},
-	{"kf1", 0, 0, F1},
-	{0, "\x1b[11~", 0, F1},
-	{0, "\x1bOQ", 0, F2},
-	{"kf2", 0, 0, F2},
-	{0, "\x1b[12~", 0, F2},
-	{0, "\x1bOR", 0, F3},
-	{"kf3", 0, 0, F3},
-	{0, "\x1b[13~", 0, F3},
-	{0, "\x1bOS", 0, F4},
-	{"kf4", 0, 0, F4},
-	{0, "\x1b[14~", 0, F4},
-	{0, "\x1bOt", 0, F5},
-	{"kf5", 0, 0, F5},
-	{0, "\x1b[15~", 0, F5},
-	{0, "\x1bOu", 0, F6},
-	{"kf6", 0, 0, F6},
-	{0, "\x1b[17~", 0, F6},
-	{0, "\x1bOv", 0, F7},
-	{"kf7", 0, 0, F7},
-	{0, "\x1b[18~", 0, F7},
-	{0, "\x1bOl", 0, F8},
-	{"kf8", 0, 0, F8},
-	{0, "\x1b[19~", 0, F8},
-	{0, "\x1bOw", 0, F9},
-	{"kf9", 0, 0, F9},
-	{0, "\x1b[20~", 0, F9},
-	{0, "\x1bOx", 0, F10},
-	{"kf10", 0, 0, F10},
-	{0, "\x1b[21~", 0, F10},
-	{0, "\x1b[23~", 0, F11},
-	{"kf11", 0, 0, F11},
-	{0, "\x1b[24~", 0, F12},
-	{"kf12", 0, 0, F12},
-	{0, "\x1b[25~", 0, SHIFT | F3},
-	{"kf13", 0, 0, SHIFT | F3},
-	{0, "\x1b[26~", 0, SHIFT | F4},
-	{"kf14", 0, 0, SHIFT | F4},
-	{0, "\x1b[28~", 0, SHIFT | F5},
-	{"kf15", 0, 0, SHIFT | F5},
-	{0, "\x1b[29~", 0, SHIFT | F6},
-	{"kf16", 0, 0, SHIFT | F6},
-	{0, "\x1b[31~", 0, SHIFT | F7},
-	{"kf17", 0, 0, SHIFT | F7},
-	{0, "\x1b[32~", 0, SHIFT | F8},
-	{"kf18", 0, 0, SHIFT | F8},
-	{0, "\x1b[33~", 0, SHIFT | F9},
-	{"kf19", 0, 0, SHIFT | F9},
-	{0, "\x1b[34~", 0, SHIFT | F10},
-	{"kf20", 0, 0, SHIFT | F10},
+	{"\x1bOP", 0, F1},
+	{"\x1b[11~", 0, F1},
+	{"\x1b[[A", 0, F1}, // Linux console
+	{"\x1bOQ", 0, F2},
+	{"\x1b[12~", 0, F2},
+	{"\x1b[[B", 0, F2}, // Linux console
+	{"\x1bOR", 0, F3},
+	{"\x1b[13~", 0, F3},
+	{"\x1b[[C", 0, F3}, // Linux console
+	{"\x1bOS", 0, F4},
+	{"\x1b[14~", 0, F4},
+	{"\x1b[[D", 0, F4}, // Linux console
+	{"\x1bOt", 0, F5},
+	{"\x1b[15~", 0, F5},
+	{"\x1b[[E", 0, F5}, // Linux console
+	{"\x1bOu", 0, F6},
+	{"\x1b[17~", 0, F6},
+	{"\x1bOv", 0, F7},
+	{"\x1b[18~", 0, F7},
+	{"\x1bOl", 0, F8},
+	{"\x1b[19~", 0, F8},
+	{"\x1bOw", 0, F9},
+	{"\x1b[20~", 0, F9},
+	{"\x1bOx", 0, F10},
+	{"\x1b[21~", 0, F10},
+	{"\x1b[23~", 0, F11},
+	{"\x1b[24~", 0, F12},
+	{"\x1b[25~", 0, SHIFT | F3},
+	{"\x1b[26~", 0, SHIFT | F4},
+	{"\x1b[28~", 0, SHIFT | F5},
+	{"\x1b[29~", 0, SHIFT | F6},
+	{"\x1b[31~", 0, SHIFT | F7},
+	{"\x1b[32~", 0, SHIFT | F8},
+	{"\x1b[33~", 0, SHIFT | F9},
+	{"\x1b[34~", 0, SHIFT | F10},
+	{"\x1b[1;2P", 0, SHIFT | F1},
+	{"\x1b[1;2Q", 0, SHIFT | F2},
+	{"\x1b[1;2R", 0, SHIFT | F3},
+	{"\x1b[1;2S", 0, SHIFT | F4},
+	{"\x1b[15;2~", 0, SHIFT | F5},
+	{"\x1b[17;2~", 0, SHIFT | F6},
+	{"\x1b[18;2~", 0, SHIFT | F7},
+	{"\x1b[19;2~", 0, SHIFT | F8},
+	{"\x1b[20;2~", 0, SHIFT | F9},
+	{"\x1b[21;2~", 0, SHIFT | F10},
+	{"\x1b[23;2~", 0, SHIFT | F11},
+	{"\x1b[24;2~", 0, SHIFT | F12},
 
 	/* keypad keys */
-	{0, "\x1bOw", 0, NP7},
-	{"ka1", 0, 0, NP7},
-	{0, "\x1bOy", 0, NP9},
-	{"ka3", 0, 0, NP9},
-	{0, "\x1bOu", 0, NP5},
-	{"kb2", 0, 0, NP5},
-	{0, "\x1bOq", 0, NP1},
-	{"kc1", 0, 0, NP1},
-	{0, "\x1bOs", 0, NP3},
-	{"kc3", 0, 0, NP3},
-	{0, 0, 0, NPENTER},
-	{0, "\x1bOM", 0, NPENTER},
+	{"\x1bOw", 0, NP7},
+	{"\x1bOy", 0, NP9},
+	{"\x1bOu", 0, NP5},
+	{"\x1b[G", 0, NP5}, // Linux console
+	{"\x1bOq", 0, NP1},
+	{"\x1bOs", 0, NP3},
+	{"\x1bOM", 0, NPENTER},
 };
 
 //---------------------------------------------------------------------------
@@ -299,12 +247,8 @@ static unsigned char PCBorders[] =
 	0
 };
 
-// this string is the initialized to the VT100 line drawing character set
-// the init code replaces it with the chars from the 0 capability
-static char BorderChars[] = "lkjmxqlkjmxqlkjmxqlkjmxqwwjmxq";
-
-// if no line drawing charset, use these
-static char DefaultBorders[] = "<>><|-<>><|-<>><|-<>><|-TT><|-";
+// the same line drawing chars in the VT100 alternate character set
+static const char BorderChars[] = "lkjmxqlkjmxqlkjmxqlkjmxqwwjmxq";
 
 static char TTBuffer[8 * 1024], *TTBufp = TTBuffer, *TTBufHeadEnd = TTBuffer;
 
@@ -379,7 +323,9 @@ void TTPositionCursor(unsigned row, unsigned col)
 	{
 		TTYCurRow = row;
 		TTYCurCol = col;
-		TTPutSeq(tparm(SeqCursorAddress, TTYCurRow, TTYCurCol));
+		char seq[24];
+		snprintf(seq, sizeof seq, "\033[%u;%uH", TTYCurRow + 1, TTYCurCol + 1);
+		TTPutSeq(seq);
 	}
 }
 
@@ -394,9 +340,8 @@ static void TTRead(unsigned row, unsigned col, unsigned charCount, VCHAR *vchars
 //---------------------------------------------------------------------------
 static void TTWrite(unsigned row, unsigned col, unsigned charCount, VCHAR *vchars)
 {
-	static const int DUI2TerminfoColor[8] = { COLOR_BLACK, COLOR_BLUE,
-			COLOR_GREEN, COLOR_CYAN, COLOR_RED, COLOR_MAGENTA,
-			COLOR_YELLOW, COLOR_WHITE };
+	// DUI color order is BGR, ANSI is RGB
+	static const int DUI2ANSIColor[8] = { 0, 4, 2, 6, 1, 5, 3, 7 };
 
 	unsigned i;
 	VCHAR *svp, *dvp;
@@ -416,7 +361,7 @@ static void TTWrite(unsigned row, unsigned col, unsigned charCount, VCHAR *vchar
 			TTPositionCursor(row, col + i);
 			if (svp->a != CurAttr)
 			{
-				if (SeqSetBold && CurBold != (svp->a & VBRIGHT) != 0)
+				if (CurBold != (svp->a & VBRIGHT) != 0)
 				{
 					CurBold = !CurBold;
 					if (CurBold)
@@ -427,8 +372,10 @@ static void TTWrite(unsigned row, unsigned col, unsigned charCount, VCHAR *vchar
 						CurAttr = MakeAttrib(VBLACK, VBLACK);
 					}
 				}
-				TTPutSeq(tparm(SeqSetForeColor, DUI2TerminfoColor[svp->a & 0x7]));
-				TTPutSeq(tparm(SeqSetBackColor, DUI2TerminfoColor[(svp->a >> 4) & 0x7]));
+				char seq[16];
+				snprintf(seq, sizeof seq, "\033[3%d;4%dm", DUI2ANSIColor[svp->a & 0x7],
+						DUI2ANSIColor[(svp->a >> 4) & 0x7]);
+				TTPutSeq(seq);
 				CurAttr = svp->a;
 			}
 			TTPutC(svp->c);
@@ -450,7 +397,7 @@ static void TTHideCursor()
 		TTWrite(UserCurRow, UserCurCol, 1, &vc);
 		TTPositionCursor(UserCurRow, UserCurCol);
 	}
-	if (UserCursorFake != CF_FAKE_ONLY && SeqCursorGone)
+	if (UserCursorFake != CF_FAKE_ONLY)
 		TTPutSeq(SeqCursorGone);
 }
 
@@ -506,61 +453,43 @@ static unsigned VidInitCount = 0;
 
 int InitVideo()
 {
-	unsigned i, len;
-	int err;
-	char *capSeq, *borderPairs, *bp, *dp, *enableAltCharSet;
-//	char *termName = getenv("COLORTERM");
-//	if (!termName)
-//		termName = getenv("TERM");
+	unsigned i;
+	const char *termName = getenv("TERM");
+	struct winsize ws = {0, 0, 0, 0};
 
 	if (VidInitCount++)
 		return 1;
 
+	if (!termName || !*termName || strcmp(termName, "dumb") == 0)
+	{
+		puts("InitVideo failed, TERM is unset or dumb");
+		VidInitCount--;
+		return 0;
+	}
 	if (tcgetattr(0, &DCShellModes) != 0 || tcgetattr(0, &DCTermModes) != 0)
 	{
 		VidInitCount--;
 		return 0;
 	}
-	if (setupterm(0 /* termName */, 1, &err) == ERR)
-	{
-		puts("InitVideo failed, could not setupterm");
-		VidInitCount--;
-		return 0;
-	}
 
-	videoRows = tigetnum((char *)"lines");
-	videoCols = tigetnum((char *)"cols");
+	// window size from the tty, else $LINES/$COLUMNS, else 24x80
+	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0 && ws.ws_row && ws.ws_col)
+	{
+		videoRows = ws.ws_row;
+		videoCols = ws.ws_col;
+	}
+	else
+	{
+		const char *env;
+		videoRows = (env = getenv("LINES"))? atoi(env): 24;
+		videoCols = (env = getenv("COLUMNS"))? atoi(env): 80;
+	}
 	if (videoRows < MIN_ROWS || videoCols < MIN_COLS
 			|| videoRows > MAX_ROWS || videoCols > MAX_COLS)
 	{
 		puts("InitVideo failed, rows or columns out of bounds");
 		VidInitCount--;
 		return 0;
-	}
-//	assert(videoRows == LINES && videoCols == COLS && !Screen);
-	SeqClearScreen = tigetstr((char *)"clear");
-	SeqCursorAddress = tigetstr((char *)"cup");
-	SeqCursorModeStart = tigetstr((char *)"smcup");
-	SeqCursorModeEnd = tigetstr((char *)"rmcup");
-	SeqCursorGone = tigetstr((char *)"civis");
-	SeqCursorNorm = tigetstr((char *)"cnorm");
-	SeqCursorHigh = tigetstr((char *)"cvvis");
-	SeqStartBorders = tigetstr((char *)"smacs");
-	SeqEndBorders = tigetstr((char *)"rmacs");
-	SeqSetBold = tigetstr((char *)"bold");
-	SeqClearAttributes = tigetstr((char *)"sgr0");
-	if (!SeqClearAttributes)
-		SeqSetBold = 0;
-	borderPairs = tigetstr((char *)"acsc");
-	enableAltCharSet = tigetstr((char *)"enacs");
-	if (!(SeqSetForeColor = tigetstr((char *)"setaf")))
-		SeqSetForeColor = tigetstr((char *)"setf");
-	if (!(SeqSetBackColor = tigetstr((char *)"setab")))
-		SeqSetBackColor = tigetstr((char *)"setb");
-	if (!SeqSetForeColor || !SeqSetBackColor)
-	{
-		SeqSetBackColor = SeqANSIBackColor;
-		SeqSetForeColor = SeqANSIForeColor;
 	}
 //	DCTermModes.c_iflag = 0;
 //	DCTermModes.c_lflag = 0;
@@ -569,7 +498,6 @@ int InitVideo()
 	DCTermModes.c_cc[VMIN] = 1;
 	DCTermModes.c_cc[VTIME] = 0;
 	if (tcsetattr(0, TCSANOW, &DCTermModes) != 0
-			|| !SeqClearScreen || !SeqCursorAddress
 			|| !(Screen = new VCHAR[videoRows * videoCols]))
 	{
 		ExitVideo();
@@ -583,34 +511,12 @@ int InitVideo()
 		Screen[i].c = ' ';
 	}
 
-	if (!SeqStartBorders || !SeqEndBorders || !borderPairs
-			|| strlen(borderPairs) % 2)
-	{
-		SeqStartBorders = SeqEndBorders = "";
-		strcpy(BorderChars, DefaultBorders);
-	}
-	else
-		for (bp = borderPairs; *bp; bp += 2)
-			for (dp = BorderChars; *dp; dp++)
-				if (*dp == bp[0])
-					*dp = bp[1];
-
 	for (i = 0; i < ELEMCOUNT(CapMap); i++)
-		if (CapMap[i].capName
-				&& (capSeq = tigetstr((char *)CapMap[i].capName))
-				&& capSeq != (char *)-1
-				&& (len = strlen(capSeq)) <= MAX_CAP_SEQ)
-		{
-			CapMap[i].capSeq = capSeq;
-			CapMap[i].seqLen = len;
-		}
-		else if (CapMap[i].capSeq)
-			CapMap[i].seqLen = strlen(CapMap[i].capSeq);
+		CapMap[i].seqLen = strlen(CapMap[i].capSeq);
 
 	TTBorders(false);
 	TTPutSeq(SeqCursorModeStart);
 	TTPutSeq(SeqClearScreen);
-	TTPutSeq(enableAltCharSet);
 	signal(SIGWINCH, SigWINCHHandler);
 	TTHideCursor();
 	return 1;
