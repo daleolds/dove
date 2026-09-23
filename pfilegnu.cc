@@ -8,7 +8,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <glob.h>
-#include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
 

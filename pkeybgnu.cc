@@ -1,6 +1,6 @@
 #include <assert.h>
-#include <pvideo.h>
-#include <pkeybrd.h>
+#include "pvideo.h"
+#include "pkeybrd.h"
 
 unsigned TTYGetKeys(unsigned maxKeys, unsigned *keys, unsigned millisecondsToWait);
 
