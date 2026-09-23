@@ -1,7 +1,6 @@
 #include <ctype.h>
-#include <pvideo.h>
-#include <duiwin.h>
-#include <common.h>
+#include "duiwin.h"
+#include "common.h"
 
 //---------------------------------------------------------------------------
 static void ClearTempMark()
