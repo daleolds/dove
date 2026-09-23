@@ -1,8 +1,7 @@
 #include <ctype.h>
 #include <assert.h>
-#include <pvideo.h>
-#include <duiwin.h>
-#include <common.h>
+#include "duiwin.h"
+#include "common.h"
 
 static inline bool eq(char a, char b)
 	{ return (modes & MODE_CASESENSITIVE)? a == b: toupper(a) == toupper(b); }
@@ -65,7 +64,7 @@ static int SearchReplace(int n, int sflags)
 				cur.offset = 0;
 				assert(cur.line->length() || cur.line == curbp->linep);
 			}
-			
+
 			if (sflags & GLOBAL && curbp == startBuffer
 					&& cur.line == curvp->position[SAVE].line
 					&& cur.offset == curvp->position[SAVE].offset)

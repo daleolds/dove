@@ -1,7 +1,6 @@
 #include <stddef.h>
 #include <string.h>
 #include <ctype.h>
-#include "pvideo.h"
 #include "duiwin.h"
 #include "pkeybrd.h"
 #include "duimenu.h"

@@ -1,6 +1,5 @@
-#include <pvideo.h>
-#include <duiwin.h>
-#include <common.h>
+#include "duiwin.h"
+#include "common.h"
 
 /*--------------------------------------------------------------------------
  * The command makes the next view (down the screen) the current view.
@@ -58,7 +57,7 @@ static int CanResizeThisView(View *v, int *increaseRows)
 static View *CanResizeView(int *increaseRows)
 {
 	View *v;
-	
+
 	v = curvp->next;
 	if (v != 0 && CanResizeThisView(v, increaseRows))
 			return(v);
@@ -228,7 +227,7 @@ static int ResizeView(int n)
 			shrinkingView->winp->row += n;
 			if (shrinkingView->dotrow >= n)
 				shrinkingView->dotrow -= n;
-			else 
+			else
 				shrinkingView->dotrow = 0;
 		}
 		else

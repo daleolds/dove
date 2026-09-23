@@ -1,10 +1,9 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
-#include <pvideo.h>
-#include <duiwin.h>
-#include <pkeybrd.h>
-#include <common.h>
+#include "pvideo.h"
+#include "duiwin.h"
+#include "pkeybrd.h"
+#include "common.h"
 
 /*--------------------------------------------------------------------------
  */
@@ -106,7 +105,7 @@ static int DisplayHelpScreen(int screenNumber, Window *helpWindow)
 			leftThisCategory = categories[categoryIndex].entries;
 			if (screenNumber == 0)
 			{
-				WSetCursor(curRow, curCol - 4 
+				WSetCursor(curRow, curCol - 4
 				  + (centerCol - strlen(categories[categoryIndex].title))/2);
 				WSetAttribute(attrib[HELPBORDER]);
 				WriteString(categories[categoryIndex].title);

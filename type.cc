@@ -1,6 +1,4 @@
-#include <pvideo.h>
-#include <duiwin.h>
-#include <common.h>
+#include "common.h"
 
 static bool lastWasSpace = false;
 
@@ -109,7 +107,7 @@ static int IndentLine(void)
  * Used when word wrap is on to type a
  * space (instead of \r\n, \t or space) and
  * check for word wrap column exceeded.
- * Also inhibits more than one space in a  
+ * Also inhibits more than one space in a
  * row.
  */
 static int TypeSpace(void)
@@ -141,11 +139,11 @@ int EnterKey(int n)
 		if (!IndentLine())
 			return 0;
 	return 1;
-} 
+}
 
 /*--------------------------------------------------------------------------
  * Set fill column to n for word wrap
- * functions. 
+ * functions.
  */
 int WordWrapModeKey(int n)
 {
@@ -208,7 +206,7 @@ int CRLFModeKey(int n)
 
 /*--------------------------------------------------------------------------
  * Set tab size, an argument of 0 toggles
- * real tabs/use spaces. 
+ * real tabs/use spaces.
  */
 int TabModeKey(int n)
 {

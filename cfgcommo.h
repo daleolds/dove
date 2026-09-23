@@ -1,4 +1,5 @@
-#include <cfgtable.h>
+#include "cfgtable.h"
+#include "duimenu.h"
 
 /*-----------------------------------------------------------------------------
  * constants

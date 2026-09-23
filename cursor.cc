@@ -39,18 +39,16 @@ int MarkToBOLKey(void)
 }
 
 /*--------------------------------------------------------------------------
- * Move the cursor backwards by n characters. Error if you try and move
- * out of the buffer.
+ * Move the cursor backwards by n characters. Return actual number of chars moved.
  */
-static int ComBackChar(int n)
+int MoveBackChars(int n)
 {
-	Line *lp;
-	while (n--)
+	for (int i = 0; i < n; i++)
 		if (curvp->position[DOT].offset == 0)
 		{
-			lp = curvp->position[DOT].line->back();
+			Line *lp = curvp->position[DOT].line->back();
 			if (lp == curbp->linep)
-				return 0;
+				return i;
 			if (curvp->dotrow > 0)
 				curvp->dotrow--;
 			curvp->position[DOT].line = lp;
@@ -58,11 +56,15 @@ static int ComBackChar(int n)
 		}
 		else
 			curvp->position[DOT].offset--;
-	return 1;
+	return n;
 }
 
-int BackCharKey(int n) { ClearTempMark(); return ComBackChar(n); }
-int MarkBackCharKey(int n) { SetTempMark(); return ComBackChar(n); }
+/*--------------------------------------------------------------------------
+ * Move the cursor backwards by n characters. Error if you try and move
+ * out of the buffer.
+ */
+int BackCharKey(int n) { ClearTempMark(); return MoveBackChars(n) == n? 1: 0; }
+int MarkBackCharKey(int n) { SetTempMark(); return MoveBackChars(n) == n? 1: 0; }
 
 /*--------------------------------------------------------------------------
  * Move the cursor to the end of the current line. No errors.
@@ -114,14 +116,14 @@ int MarkForwCharKey(int n) { SetTempMark(); return ComForwCharKey(n); }
  */
 int GoToBOBKey(void)
 {
-	ClearTempMark(); 
+	ClearTempMark();
 	curvp->position[DOT].line = curbp->linep->forw();
 	curvp->position[DOT].offset = curvp->dotrow = 0;
 	return 1;
 }
 int MarkToBOBKey(void)
 {
-	SetTempMark(); 
+	SetTempMark();
 	curvp->position[DOT].line = curbp->linep->forw();
 	curvp->position[DOT].offset = curvp->dotrow = 0;
 	return 1;
@@ -132,7 +134,7 @@ int MarkToBOBKey(void)
  */
 int GoToEOBKey(void)
 {
-	ClearTempMark(); 
+	ClearTempMark();
 	curvp->position[DOT].line = curbp->linep;
 	curvp->position[DOT].offset = curbp->linep->offsetofEOL();
 	curvp->dotrow = curvp->winp->high;
@@ -141,7 +143,7 @@ int GoToEOBKey(void)
 
 int MarkToEOBKey(void)
 {
-	SetTempMark(); 
+	SetTempMark();
 	curvp->position[DOT].line = curbp->linep;
 	curvp->position[DOT].offset = curbp->linep->offsetofEOL();
 	curvp->dotrow = curvp->winp->high;
@@ -338,7 +340,7 @@ int ScrollDownKey(int n) { ClearTempMark(); return ComScrollDownKey(n); }
 int MarkScrollDownKey(int n) { SetTempMark(); return ComScrollDownKey(n); }
 
 /*--------------------------------------------------------------------------
- * Move the current window up by n lines. 
+ * Move the current window up by n lines.
  */
 static int ComScrollUpKey(int n)
 {
@@ -361,7 +363,7 @@ static void InitHorizScrollCol(void)
 		horizScrollCol = CursorCol();
 	curbp->thisSeqCmd = SEQ_HSCROLL;
 }
-	
+
 /*--------------------------------------------------------------------------
  * Move the current window left by n cols.
  */

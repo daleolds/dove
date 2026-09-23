@@ -1,12 +1,11 @@
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
-#include <pkeybrd.h>
-#include <pvideo.h>
-#include <duiwin.h>
-#include <common.h>
+#include "duiwin.h"
+#include "common.h"
 
 bool msgLineFull = false;
 
@@ -43,7 +42,7 @@ int MLKey(const char *prompt0, const char *prompt1, const char *prompt2)
 	char *msg = new char[msgLen];
 	sprintf(msg, "%s%s%s", prompt0, prompt1, prompt2);
 	MLWrite("%s", msg + msgOffset);
-	delete msg;
+	delete[] msg;
 	ShowCursor(messageWindow->row, messageWindow->col + (msgLen - msgOffset - 1),
 			attrib[MSGLINECURSOR]);
 	cmd = BindKey(GetCommand());
@@ -282,8 +281,8 @@ void MLWrite(const char *fmt, ...)
  */
 void MLRowCol(void)
 {
-	if (msgLineFull)
-		return;
+	if (msgLineFull || messageWindow->wide < LINECOLLEN + 1)
+		return; // full or not room for row and col
 	char lineStr[LINECOLLEN + 1];
 	unsigned ln = 1;
 	Line *dotp = curvp->position[DOT].line;
@@ -312,7 +311,7 @@ void MLTime(void)
 	hr = ((hr = (now->tm_hour % 12)) == 0? 12: hr);
 	snprintf(timeStr, sizeof timeStr, "%c%c %2d%c%02d%c",
 			(modes & MODE_INSERT)? ' ': 'O', (macroIn != 0? 'M': ' '),
-			hr, /* ((now->tm_sec & 1)? ':': ' ') */ ':', now->tm_min,
+			hr, ((now->tm_sec & 1)? ':': ' '), now->tm_min,
 			(now->tm_hour >= 12? 'p': 'a'));
 	if (strcmp(lastTime, timeStr) != 0)
 	{

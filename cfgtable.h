@@ -1,7 +1,7 @@
 #ifndef CFGTABLE_H
 #define CFGTABLE_H
 
-#include <pvideo.h>
+#include "pvideo.h"
 
 /*-----------------------------------------------------------------------------
  * configuration definitions

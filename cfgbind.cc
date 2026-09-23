@@ -3,11 +3,10 @@
 #include <string.h>
 #include <ctype.h>
 
-#include <pkeybrd.h>
-#include <pvideo.h>
-#include <duiwin.h>
-#include <duimenu.h>
-#include <cfgcommo.h>
+#include "pkeybrd.h"
+#include "pvideo.h"
+#include "duiwin.h"
+#include "cfgcommo.h"
 
 #define WIDTH (MAXKEYNAME + MAXFUNCTIONNAME + 2)
 
@@ -70,7 +69,7 @@ static unsigned CharToTypeOrMacroNum(int doMacro)
  */
 
 #define FSELECTIONS (functionCount + 3)
- 
+
 static void SelectFunction(BINDING *cmd)
 {
 	static const char *specialFunctions[] =
@@ -85,7 +84,7 @@ static void SelectFunction(BINDING *cmd)
 
 	if ((w = CreateWindow(4, 10 + WIDTH - 3, videoRows - 7, MAXFUNCTIONNAME + 2, 0)) == 0)
 		return;
- 	WriteBorder("Functions", DOUBLE, BOLDVID);
+	WriteBorder("Functions", DOUBLE, BOLDVID);
 	ClearWindow();
 	selection = base = 0;
 	switch(bndg.type)
@@ -230,7 +229,7 @@ int KeyBindings(unsigned row, unsigned col)
 
 	if ((w = CreateWindow(4, 10, videoRows - 7, WIDTH + 2, 0)) == 0)
 		return(-1);
- 	WriteBorder("Bindings", DOUBLE, BOLDVID);
+	WriteBorder("Bindings", DOUBLE, BOLDVID);
 	ClearWindow();
 	for (selection = base = 0;;)
 	{
@@ -354,4 +353,3 @@ int KeyBindings(unsigned row, unsigned col)
 }
 
 /*===========================================================================*/
-

@@ -1,6 +1,5 @@
-#include <pvideo.h>
-#include <duiwin.h>
-#include <common.h>
+#include "duiwin.h"
+#include "common.h"
 
 /*--------------------------------------------------------------------------
  * This routine figures out the bounds of the region in the current view,

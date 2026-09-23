@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-#include <duiwin.h>
-#include <common.h>
+#include "duiwin.h"
+#include "common.h"
 
 Window *screen, *messageWindow, *timeWindow;
 VBYTE attrib[ATTRIBCOUNT];
@@ -91,7 +91,7 @@ unsigned DisplayCol(Line *lp, unsigned lo)
 	if (modes & MODE_SHOW_CTRL_CHARS)
 		return lo;
 	for (col = i = 0; i < lo; i++)
-		if (lp->getc(i) == '\t')                
+		if (lp->getc(i) == '\t')
 			col = (col/tabSize + 1) * tabSize;
 		else
 			col++;
@@ -113,7 +113,7 @@ static unsigned AdjustLeftCol(View *vp)
 {
 	unsigned i = DisplayCol(vp->position[DOT].line, vp->position[DOT].offset);
 	if (i >= vp->leftcol + vp->winp->wide - 1)
-		vp->leftcol = i - vp->winp->wide + 
+		vp->leftcol = i - vp->winp->wide +
 		  (vp->position[DOT].offset == vp->position[DOT].line->offsetofEOL()
 		  		&& !(modes & MODE_SHOW_CTRL_CHARS)? 1: 2);
 	else if (i < vp->leftcol)

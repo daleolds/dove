@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <stdio.h>
 #include <limits.h>
 
@@ -243,7 +244,7 @@ int ExecuteMacro(unsigned key, unsigned repeat)
 }
 
 /*--------------------------------------------------------------------------
- * This is the general command translation routine, maps a key to routine. 
+ * This is the general command translation routine, maps a key to routine.
  */
 BINDING BindKey(unsigned short key)
 {
@@ -272,64 +273,68 @@ int CommandAvailable(void)
  */
 unsigned GetCommand(void)
 {
-	unsigned c, n, k;
-	unsigned short *tmpBuffer;
+	unsigned c;
 	while (macroOut == 0 && !KeyHit(250))
 		MLTime();				/* update clock display	while waiting */
+
 	if (macroOut != 0)
 	{
 		c = *macroOut++;
 		if (*macroOut == NONKEY)
 			macroOut = (macroRept-- == 0? 0: macroBuffer);
+		return c;
 	}
-	else
+
+	if ((c = GetKey()) == NONKEY)
+		return c;
+
+	if (c >= (ALT|'0') && c <= (ALT|'9'))	/* build up repeat counts */
 	{
-		c = GetKey();
-		if (c >= (ALT|'0') && c <= (ALT|'9'))	/* build up repeat counts */
+		uint32_t count = 0;
+		do
 		{
-			n = 0;
-			do
-			{
-				c = (c & ~ALT) - '0';
-				n = ((long)n*10+c >= (long)REPT? (int)(REPT-1): (n*10+c));
-				MLWrite("Repeat: %u", n);
-				c = GetKey();
-			} while (c >= (ALT|'0') && c <= (ALT|'9'));
+			if ((count = count * 10 + (c & ~ALT) - '0') >= REPT)
+			    count = REPT - 1;
+			MLWrite("Repeat: %u", (unsigned)count);
+			c = GetKey();
+		} while (c >= (ALT|'0') && c <= (ALT|'9'));
+		UngetKey(c);
+		c = count | REPT;
+	}
+	else if (KeyHit(0))
+	{
+		unsigned n = 1, nextk = NONKEY;
+		while (KeyHit(0) && (nextk = GetKey()) == c)
+			n++;
+		if (nextk != c && nextk != NONKEY)
+			UngetKey(nextk);
+		if (n > 1)
+		{
 			UngetKey(c);
 			c = n | REPT;
 		}
-		else if (KeyHit(0))
+	}
+
+	if (macroIn != 0)		/* Save macro strokes.	*/
+	{
+		unsigned short *tmpBuffer;
+		if (macroIn < macroBuffer + macroSize - 1)
+			*macroIn++ = c;
+		else if ((tmpBuffer = (unsigned short *)malloc(
+		  (macroSize + MACROCHUNK) * sizeof(*macroBuffer))) == 0)
 		{
-			for (n = 1, k = NONKEY; KeyHit(0) && (k = GetKey()) == c; n++)
-				;
-			if (k != NONKEY)
-				UngetKey(k);
-			if (n > 1)
-			{
-				UngetKey(c);
-				c = n | REPT;
-			}
+			MLWrite("No more near memory, macro cancelled");
+			free(macroBuffer);
+			macroBuffer = macroIn = 0;
 		}
-		if (macroIn != 0 && c != NONKEY)		/* Save macro strokes.	*/
+		else
 		{
-			if (macroIn < macroBuffer + macroSize - 1)
-				*macroIn++ = c;
-			else if ((tmpBuffer = (unsigned short *)malloc(
-			  (macroSize + MACROCHUNK) * sizeof(*macroBuffer))) == 0)
-			{
-				MLWrite("No more near memory, macro cancelled");
-				free(macroBuffer);
-				macroBuffer = macroIn = 0;
-			}
-			else
-			{
-				memcpy(tmpBuffer, macroBuffer, macroSize*sizeof(*macroBuffer));
-				macroSize += MACROCHUNK;
-				macroIn = tmpBuffer + (unsigned)(macroIn - macroBuffer);
-				free(macroBuffer);
-				macroBuffer = tmpBuffer;
-				*macroIn++ = c;
-			}
+			memcpy(tmpBuffer, macroBuffer, macroSize*sizeof(*macroBuffer));
+			macroSize += MACROCHUNK;
+			macroIn = tmpBuffer + (unsigned)(macroIn - macroBuffer);
+			free(macroBuffer);
+			macroBuffer = tmpBuffer;
+			*macroIn++ = c;
 		}
 	}
 	return c;

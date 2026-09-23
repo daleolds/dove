@@ -1,9 +1,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <pvideo.h>
-#include <duiwin.h>
-#include <common.h>
+#include "common.h"
 
 //---------------------------------------------------------------------------
 // determines size of EOL for current modes and given line
@@ -280,7 +278,7 @@ int InsertChars(size_t len, const char *data)
 			Line *nlp = WriteInLine(lp, offset, len, start, false);
 			if (!nlp)
 				return 0;
-			FixIns(lp, nlp, offset, len);
+			(void)FixIns(lp, nlp, offset, len);
 			return 1;
 		}
 
@@ -312,7 +310,7 @@ int InsertChars(size_t len, const char *data)
 /*--------------------------------------------------------------------------
  * This function deletes n characters starting at cursor.
  * It returns 1 if all of the characters were deleted, and 0 if
- * they were not because we ran into the end of the buffer. 
+ * they were not because we ran into the end of the buffer.
  */
 
 int DeleteChars(fsize_t n)
@@ -332,7 +330,7 @@ int DeleteChars(fsize_t n)
 		{	// delete within current line
 			size_t chunk = n > leftThisLine? leftThisLine: n;
 			lp->remove(offset, chunk);
-			FixDelInLine(lp, MaybeShrinkLine(lp), offset, chunk);
+			(void)FixDelInLine(lp, MaybeShrinkLine(lp), offset, chunk);
 			return leftThisLine > n? 1: 0;
 		}
 
@@ -345,8 +343,8 @@ int DeleteChars(fsize_t n)
 			if (!nlp)
 				return 0;
 			nxtlp->unlink(); // delete the next line
-			FixDelInLine(lp, nlp, offset, leftThisLine);
-			FixMerge(nxtlp, nlp, off2, offset);
+			(void)FixDelInLine(lp, nlp, offset, leftThisLine);
+			(void)FixMerge(nxtlp, nlp, off2, offset);
 			return 1;
 		}
 
@@ -425,5 +423,3 @@ static void FixupPositions(bool deleting, Line *lp, size_t offset, size_t len,
 #endif
 
 /*======================================================================*/
-
-

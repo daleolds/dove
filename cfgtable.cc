@@ -4,9 +4,9 @@
 #include <errno.h>
 #include <assert.h>
 
-#include <pkeybrd.h>
-#include <cfgtable.h>
-#include <common.h>
+#include "pkeybrd.h"
+#include "cfgtable.h"
+#include "common.h"
 
 #define KF(func)	func
 
@@ -32,12 +32,12 @@ int FindBinding(unsigned key, bool insert)
 			return (int)(probe - bindingTable);
 		if (KeyData(probe->key) > KeyData(key)
 				|| KeyData(probe->key) == KeyData(key) && probe->key > key)
-	      count = i;
+			count = i;
 		else
 		{
-	      bmin = &probe[1];
-	      count = count - i - 1;
-   	}
+			bmin = &probe[1];
+			count = count - i - 1;
+		}
 	}
 	if (!insert)
 		return -1;
@@ -182,7 +182,6 @@ KEYFUNCTION functionTable[] =
 {NULLNOREPT, KF(ReplaceKey), CT_SEARCH, "Search and replace"},
 {NULLNOREPT, KF(SetSearchMaskKey), CT_SEARCH, "Set search mask", ALT | 'M'},
 {NULLNOREPT, KF(SetReplaceMaskKey), CT_SEARCH, "Set replace mask", ALT | 'R'},
-{KF(MemoryLeftKey), NULLREPT, CT_MISC, "Display avail memory"},
 {KF(TwiddleKey), NULLREPT, CT_MISC, "Dyslexic key", DCTRL | 'D'},
 {KF(FindMatchKey), NULLREPT, CT_SEARCH, "Match brace/paren", DCTRL | ']'},
 {KF(ShowPositionKey), NULLREPT, CT_MISC, "Show cursor position", DCTRL | 'P'},
@@ -369,7 +368,7 @@ error:
 
 	for (i = 0; i < functionCount; i++)
 		for (k = 0; k < 2; k++)
-			if (key = k? functionTable[i].defaultKeyB: functionTable[i].defaultKey)
+			if ((key = k? functionTable[i].defaultKeyB: functionTable[i].defaultKey))
 			{
 				assert(!IsDataKey(key) && !(key >= (ALT|'0') && key <= (ALT|'9')));
 				if ((j = FindBinding(key, true)) < 0)

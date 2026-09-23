@@ -1,11 +1,11 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <pkeybrd.h>
-#include <pvideo.h>
-#include <duiwin.h>
-#include <duimenu.h>
-#include <cfgcommo.h>
+#include "pkeybrd.h"
+#include "pvideo.h"
+#include "duiwin.h"
+#include "duimenu.h"
+#include "cfgcommo.h"
 
 static const char *usageStrings[] =
 {
@@ -22,7 +22,7 @@ static const char *usageStrings[] =
 const char *copyrightStrings[] =
 {
 "dove v" VERSION " -- a text editor",
-"Copyright (c) 1989 - 2013 Dale Olds. All rights reserved.",
+"Copyright (c) 1989 - 2026 Dale Olds. All rights reserved.",
 "",
 "If you find dove useful, feel free to use it. Please send",
 "comments and suggestions to:",

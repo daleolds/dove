@@ -139,7 +139,7 @@ static int ReadIn(const char *fname, int *fmode = 0, time_t *fModTime = 0)
  * written is displayed. Most of the grief is error checking of some sort.
  */
 static int WriteOut(const char *fname, Position *start, Position *end,
-    int fmode = 0)
+	int fmode = 0)
 {
 	Position p;
 	int fileHandle, rCode = 1;
@@ -373,7 +373,7 @@ int FileSave(void)
 	char bakFile[FIO_MAX_PATH], tmpFile[FIO_MAX_PATH], *fileName, *extension;
 	const char *msg;
 	int len;
-	
+
 	if (!(curbp->flags & B_CHANGED))
 	{
 		MLWrite("No changes - no need to write");

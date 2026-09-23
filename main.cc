@@ -4,17 +4,15 @@
 #include <errno.h>
 #include <signal.h>
 
-#include <pkeybrd.h>
-#include <pvideo.h>
-#include <duiwin.h>
-#include <cfgtable.h>
-#include <common.h>
+#include "pkeybrd.h"
+#include "cfgtable.h"
+#include "common.h"
 
 #define MAXUPDATESKIP	10	/* maximum times to skip updating the screen
 								because a command was available. */
 
 Buffer *curbp = 0;		/* Current buffer			*/
-View *curvp = 0;			/* Current view				*/
+View *curvp = 0;		/* Current view				*/
 Buffer *bheadp = 0;		/* Buffer listhead			*/
 View *vheadp = 0;		/* View listhead			*/
 

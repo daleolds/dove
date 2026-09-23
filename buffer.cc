@@ -1,15 +1,13 @@
 #include <ctype.h>
-#include <pvideo.h>
-#include <duiwin.h>
-#include <common.h>
+#include "duiwin.h"
+#include "common.h"
 
 /*--------------------------------------------------------------------------
  * Attach the next buffer to a view
  */
 int NextBufferKey(int n)
 {
-	Buffer *bp;
-	bp = curbp;
+	Buffer *bp = curbp;
 	while (n--)
 		bp = (bp->bufp == 0? bheadp: bp->bufp);
 	if (bp != curbp)
@@ -50,7 +48,7 @@ int RenameBufferKey(void)
 
 	if (!CompletePath(fullSpec, fname.data()))
 		return 0;
-		
+
 	for (next = bheadp; next && (i = strcmp(fullSpec, next->fname)) > 0;
 			next = next->bufp)
 		prev = next;
@@ -60,7 +58,7 @@ int RenameBufferKey(void)
 		MLWrite("duplicate file name ignored");
 		return 0;
 	}
-		
+
 	strcpy(curbp->fname, fullSpec);
 	curbp->flags &= ~B_READONLY;
 	curbp->flags |= B_CHANGED;
@@ -124,14 +122,13 @@ int CreateBufferFromPathKey(void) { return CreateBuffers(true); }
  */
 int DeleteBufferKey(void)
 {
-	Buffer *bp, *nextbp;
-	bp = curbp;
+	Buffer *bp = curbp;
 	if (bp->viewCount > 1)
 	{
 		MLWrite("Cannot delete buffers displayed by multiple views");
 		return 0;
 	}
-	nextbp = (bp->bufp == 0? bheadp: bp->bufp);
+	Buffer *nextbp = (bp->bufp == 0? bheadp: bp->bufp);
 	if (bp == nextbp)
 	{
 		MLWrite("Cannot delete the only buffer");

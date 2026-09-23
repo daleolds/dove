@@ -199,37 +199,37 @@ bool IsWriteProtected(const char *path) { return access(path, W_OK) != 0; }
 bool FileExists(const char *path) { return access(path, F_OK) == 0; }
 bool FileRemove(const char *path) { return unlink(path) == 0; }
 bool FileRename(const char *oldName, const char *newName)
-    { return rename(oldName, newName) == 0; }
+	{ return rename(oldName, newName) == 0; }
 
 //---------------------------------------------------------------------------
 // returns handle
 
 int FileOpen(const char *name, int *mode, time_t *modTime)
 {
-  int handle = open(name, O_RDONLY);
-  if (handle != -1 && (mode || modTime))
-  {
-    struct stat buf;
-  	if (fstat(handle, &buf) != 0)
-    {
-      close(handle);
-      handle = -1;
-    }
-    else
-    {
-      if (mode)
-        *mode = buf.st_mode;
-      if (modTime)
-        *modTime = buf.st_mtime;
-    }
-  }
-  return handle;
+	int handle = open(name, O_RDONLY);
+	if (handle != -1 && (mode || modTime))
+	{
+		struct stat buf;
+		if (fstat(handle, &buf) != 0)
+		{
+			close(handle);
+			handle = -1;
+		}
+		else
+		{
+			if (mode)
+				*mode = buf.st_mode;
+			if (modTime)
+				*modTime = buf.st_mtime;
+		}
+	}
+	return handle;
 }
 
 int FileCreate(const char *name, int mode)
 {
 	return open(name, O_CREAT | O_RDWR | O_TRUNC,
-      mode? mode: (S_IWUSR | S_IRUSR | S_IWGRP | S_IRGRP | S_IROTH));
+			mode? mode: (S_IWUSR | S_IRUSR | S_IWGRP | S_IRGRP | S_IROTH));
 }
 
 //---------------------------------------------------------------------------

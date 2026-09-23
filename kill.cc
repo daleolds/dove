@@ -71,7 +71,7 @@ static int KillRegion(Region *r, bool prepend, bool newKill)
 
 /*--------------------------------------------------------------------------
  * Insert text from a kill buffer. All of the work is done by the
- * insert routines that is passed in as the charFunc arg. 
+ * insert routines that is passed in as the charFunc arg.
  */
 static int UnKillRegion(const char *data, size_t size, int n,
 		int (*charFunc)(size_t len, const char *data))
@@ -124,7 +124,7 @@ int DeleteBackKey(int n)
 	curvp->position[MARK].line = 0;
 	curvp->positionFlags &= ~PF_TEMP_MARK;
 	curbp->thisSeqCmd = SEQ_BACKDEL;
-	if (!BackCharKey(n) || GetRegion(&region, n) == -1)
+	if ((n = MoveBackChars(n)) == 0 || GetRegion(&region, n) == -1)
 		return 0;
 	return KillRegion(&region, true, curbp->lastSeqCmd != SEQ_BACKDEL)?
 			DeleteRegion(&region): 0;

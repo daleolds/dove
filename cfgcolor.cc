@@ -1,8 +1,6 @@
-#include <pkeybrd.h>
-#include <pvideo.h>
-#include <duiwin.h>
-#include <duimenu.h>
-#include <cfgcommo.h>
+#include "duiwin.h"
+#include "duimenu.h"
+#include "cfgcommo.h"
 
 static void ColorSample(void);
 
@@ -41,7 +39,7 @@ static MENU foreGroundMenu =
 /*-----------------------------------------------------------------------------
  * background submenu, uses first 8 foreGroundMenu options
  */
- 
+
 static MENU backGroundMenu =
 {
 	VERTICAL|AUTOLOCATE, 0, 0, 0, NORMVID, REVVID, BOLDVID, DOUBLESIDES,

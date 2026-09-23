@@ -1,8 +1,5 @@
-#include <string.h>
-#include <pkeybrd.h>
-#include <duiwin.h>
-#include <duimenu.h>
-#include <cfgcommo.h>
+#include "duiwin.h"
+#include "cfgcommo.h"
 
 static Window *sampleWindow;
 static Window *sampleMsgLine;

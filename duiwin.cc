@@ -1,8 +1,8 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pvideo.h>
-#include <duiwin.h>
+#include "pvideo.h"
+#include "duiwin.h"
 
 Window *selectedWindow;
 VCHAR *windowTempLine;
@@ -149,18 +149,18 @@ static void WriteTopBottom(VCHAR vc, unsigned leftCorner, unsigned rightCorner,
 	}
 	if (title != 0 && *title != 0)
 	{
-    assert(wnd->wide >= 2);
-    if ((i = strlen(title) + 2) > wnd->wide)
-      for (title += i - wnd->wide - 2, i = 0; *title != '\0'; ++i, ++title)
-  			windowTempLine[i].c = *title;
-    else
-    {
-      i = (wnd->wide - i) / 2;
-  		windowTempLine[i++].c = ' ';
-  		while (*title != '\0')
-  			windowTempLine[i++].c = *title++;
-  		windowTempLine[i].c = ' ';
-    }
+		assert(wnd->wide >= 2);
+		if ((i = strlen(title) + 2) > wnd->wide)
+			for (title += i - (wnd->wide - 2), i = 0; *title != '\0'; ++i, ++title)
+				windowTempLine[i].c = *title;
+		else
+		{
+			i = (wnd->wide - i) / 2;
+			windowTempLine[i++].c = ' ';
+			while (*title != '\0')
+				windowTempLine[i++].c = *title++;
+			windowTempLine[i].c = ' ';
+		}
 	}
 	VideoPutZone(top || !realHigh? realRow: realRow + realHigh - 1,
 			realCol, 1, realWide, windowTempLine);
@@ -183,7 +183,7 @@ void WriteBorder(const char *title, enum BORDERTYPE btype, VBYTE attrib)
 		{194,194,217,192,179,196},
 		{' ',' ',' ',' ',' ',' '}
 	};
-	
+
 	if (wnd->flags & BORDERLESS)
 		return;
 	realRow = wnd->row;
@@ -342,4 +342,3 @@ void _WriteTempLine(size_t len)
 }
 
 /*===========================================================================*/
-

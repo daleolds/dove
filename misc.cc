@@ -4,9 +4,8 @@
 #include <ctype.h>
 #include <time.h>
 
-#include <pvideo.h>
-#include <duiwin.h>
-#include <common.h>
+#include "duiwin.h"
+#include "common.h"
 
 #if defined(WC10_5_WIN32)
 #define _IS_SP _SPACE
@@ -18,15 +17,6 @@
 #define _IS_PUN _PUNCT
 #define  _ctype _IsTable
 #endif
-
-/*--------------------------------------------------------------------------
- * Display available memory.
- */
-int MemoryLeftKey(void)
-{
-	MLWrite("Available memory: unknown");
-	return 1;
-}
 
 /*--------------------------------------------------------------------------
  * Display the current position of the cursor,
@@ -64,8 +54,8 @@ int ShowPositionKey(void)
 		MLWrite("Chars = 13,10 (0x0D,0x0A), before cursor = %ld (%d%% of %ld)",
 			charsBeforeCursor, ratio, totalChars);
 	else
- 		MLWrite("Char = ?, before cursor = %ld (%d%% of %ld)",
-  			charsBeforeCursor, ratio, totalChars);
+		MLWrite("Char = ?, before cursor = %ld (%d%% of %ld)",
+			charsBeforeCursor, ratio, totalChars);
 	return 1;
 }
 
@@ -80,12 +70,10 @@ int ShowPositionKey(void)
  */
 int TwiddleKey(void)
 {
-	Line *dotp;
-	unsigned doto, cl, cr;
-	doto = curvp->position[DOT].offset;
+	unsigned cl, cr, doto = curvp->position[DOT].offset;
 	if (doto < 2 || !SetBufferChanged())
 		return 0;
-	dotp = curvp->position[DOT].line;
+	Line *dotp = curvp->position[DOT].line;
 	doto--;
 	cr = dotp->getc(doto);
 	doto--;

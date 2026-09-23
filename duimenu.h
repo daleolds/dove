@@ -1,7 +1,7 @@
 #ifndef DUIMENU_H
 #define DUIMENU_H 1
 
-#include <duiwin.h>
+#include "duiwin.h"
 
 /*-----------------------------------------------------------------------------
  * menu option definitions

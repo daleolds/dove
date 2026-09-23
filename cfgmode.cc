@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <string.h>
-#include <pkeybrd.h>
-#include <pvideo.h>
-#include <duiwin.h>
-#include <duimenu.h>
-#include <cfgcommo.h>
+#include "pkeybrd.h"
+#include "pvideo.h"
+#include "duiwin.h"
+#include "duimenu.h"
+#include "cfgcommo.h"
 
 /*-----------------------------------------------------------------------------
  * toggle modes menu

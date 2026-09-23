@@ -2,7 +2,7 @@ ODIR=obj
 ifeq ($(ODIR),$(notdir $(CURDIR)))
 #----------------------------------------------------------------------------
 
-VERSION = "2.2.24"
+VERSION = "2.2.28"
 #DEBUG = "debug"
 
 ifeq ($(OS),Windows_NT)
@@ -20,7 +20,7 @@ endif
 
 ifdef DEBUG
 OPT = -g
-STRIP = 
+STRIP =
 else
 OPT = -Os
 STRIP = @strip $(TARGET)

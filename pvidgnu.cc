@@ -1,7 +1,6 @@
 #if defined(DOVE_FOR_GNU)
 
 #include <stdio.h>
-#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
@@ -23,7 +22,9 @@
 #define ERR     (-1)
 
 #include <ncursesw/term.h>
+#include <sys/ioctl.h>
 #include <termios.h>
+#include <errno.h>
 #include <fcntl.h>
 
 #include "pvideo.h"
@@ -33,6 +34,13 @@ unsigned videoRows, videoCols;
 
 #define MAX_CAP_SEQ	32
 #define KEY_SEQ_WAIT 1000 // microseconds to wait to complete key sequence
+
+#define MIN_ROWS 4
+#define MIN_COLS 20
+
+// no particular known limit, just no need to get close to signed 16-bit values
+#define MAX_ROWS 8 * 1024
+#define MAX_COLS 8 * 1024
 
 static struct termios DCShellModes, DCTermModes;
 static char *SeqCursorAddress, *SeqCursorModeStart, *SeqCursorModeEnd;
@@ -77,7 +85,7 @@ struct CM
 	const char *capSeq;
 	unsigned seqLen;
 	unsigned key;
-} CapMap[] = 
+} CapMap[] =
 {
 	/* arrow keys */
 	{0, "\x1b[D", 0, LEFT},
@@ -158,7 +166,7 @@ struct CM
 	{0, "\x08", 0, DCTRL | BSP},
 	{"cub1", 0, 0, DCTRL | BSP},
 
-	/* home, end, page up/down, insert, delete */ 
+	/* home, end, page up/down, insert, delete */
 	{0, "\x1b[7~", 0, HOME},
 	{"khome", 0, 0, HOME},
 	{0, "\x1bOH", 0, HOME},
@@ -242,10 +250,10 @@ struct CM
 	{0, "\x1bOx", 0, F10},
 	{"kf10", 0, 0, F10},
 	{0, "\x1b[21~", 0, F10},
-	{0, "\x1b[23~", 0, F11}, 
-	{"kf11", 0, 0, F11}, 
-	{0, "\x1b[24~", 0, F12}, 
-	{"kf12", 0, 0, F12}, 
+	{0, "\x1b[23~", 0, F11},
+	{"kf11", 0, 0, F11},
+	{0, "\x1b[24~", 0, F12},
+	{"kf12", 0, 0, F12},
 	{0, "\x1b[25~", 0, SHIFT | F3},
 	{"kf13", 0, 0, SHIFT | F3},
 	{0, "\x1b[26~", 0, SHIFT | F4},
@@ -298,7 +306,7 @@ static char BorderChars[] = "lkjmxqlkjmxqlkjmxqlkjmxqwwjmxq";
 // if no line drawing charset, use these
 static char DefaultBorders[] = "<>><|-<>><|-<>><|-<>><|-TT><|-";
 
-static char TTBuffer[4096], *TTBufp = TTBuffer, *TTBufHeadEnd = TTBuffer;
+static char TTBuffer[8 * 1024], *TTBufp = TTBuffer, *TTBufHeadEnd = TTBuffer;
 
 //---------------------------------------------------------------------------
 static void TTFlush()
@@ -307,8 +315,8 @@ static void TTFlush()
 	{
 		ssize_t len = TTBufp - TTBuffer;
 		ssize_t wlen = len? write(1, TTBuffer, len): 0;
-		int err = wlen == -1? errno: 0;
-		assert(!err && wlen == len);
+		assert(wlen != -1);
+		//if (wlen != len) fprintf(stderr, "flush write expected: %ld, got %ld\n", len, wlen);
 		TTBufp = TTBufHeadEnd = TTBuffer;
 	}
 }
@@ -393,7 +401,9 @@ static void TTWrite(unsigned row, unsigned col, unsigned charCount, VCHAR *vchar
 	unsigned i;
 	VCHAR *svp, *dvp;
 
-	assert(row < videoRows && col < videoCols);
+	//assert(row < videoRows && col < videoCols);
+	if (row >= videoRows ||col >= videoCols)
+		fprintf(stderr, "row: %u (%u), col: %u (%u)", row, videoRows, col, videoCols);
 	assert(charCount <= videoCols - col);
 
 	for (dvp = &Screen[row * videoCols + col], svp = vchars, i = 0;
@@ -474,11 +484,21 @@ static bool TTResized = false;
 
 static void SigWINCHHandler(int sig)
 {
-	if (sig == SIGWINCH)
-	{
+	if (sig != SIGWINCH)
+		return;
+	struct winsize osize, nsize = {0,0,0,0};
+	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &osize) == -1)
+		assert(errno != 0);
+	nsize.ws_row = osize.ws_row < MIN_ROWS? MIN_ROWS:
+			osize.ws_row > MAX_ROWS? MAX_ROWS: osize.ws_row;
+	nsize.ws_col = osize.ws_col < MIN_COLS? MIN_COLS:
+			osize.ws_col > MAX_COLS? MAX_COLS: osize.ws_col;
+	if ((osize.ws_row != nsize.ws_row || osize.ws_col != nsize.ws_col)
+			&& ioctl(STDOUT_FILENO, TIOCSWINSZ, &nsize) == -1)
+		assert(errno != 0);
+	if (nsize.ws_row != videoRows || nsize.ws_col != videoCols)
 		TTResized = true;
-		signal(SIGWINCH, SigWINCHHandler);
-	}
+	signal(SIGWINCH, SigWINCHHandler);
 }
 
 //---------------------------------------------------------------------------
@@ -503,13 +523,20 @@ int InitVideo()
 	}
 	if (setupterm(0 /* termName */, 1, &err) == ERR)
 	{
-		puts("InitVideo failed, could not setupterm"); 
+		puts("InitVideo failed, could not setupterm");
 		VidInitCount--;
 		return 0;
 	}
 
 	videoRows = tigetnum((char *)"lines");
 	videoCols = tigetnum((char *)"cols");
+	if (videoRows < MIN_ROWS || videoCols < MIN_COLS
+			|| videoRows > MAX_ROWS || videoCols > MAX_COLS)
+	{
+		puts("InitVideo failed, rows or columns out of bounds");
+		VidInitCount--;
+		return 0;
+	}
 //	assert(videoRows == LINES && videoCols == COLS && !Screen);
 	SeqClearScreen = tigetstr((char *)"clear");
 	SeqCursorAddress = tigetstr((char *)"cup");
@@ -539,7 +566,7 @@ int InitVideo()
 //	DCTermModes.c_lflag = 0;
 //	DCTermModes.c_oflag = 0;
 	cfmakeraw(&DCTermModes);
-	DCTermModes.c_cc[VMIN] = 1;	
+	DCTermModes.c_cc[VMIN] = 1;
 	DCTermModes.c_cc[VTIME] = 0;
 	if (tcsetattr(0, TCSANOW, &DCTermModes) != 0
 			|| !SeqClearScreen || !SeqCursorAddress
@@ -548,7 +575,7 @@ int InitVideo()
 		ExitVideo();
 		return 0;
 	}
-	
+
 	CurAttr = MakeAttrib(VBLACK, VBLACK);
 	for (i = videoRows * videoCols; i > 0; )
 	{
@@ -629,10 +656,10 @@ unsigned TTYGetKeys(unsigned maxKeys, unsigned *keys, unsigned millisToWait)
 	}
 
 	// first check to see if data is already available
- 	timeval timeout = {0, 0};
-  	fd_set fdin;
-  	FD_ZERO(&fdin);
-  	FD_SET(0, &fdin);
+	timeval timeout = {0, 0};
+	fd_set fdin;
+	FD_ZERO(&fdin);
+	FD_SET(0, &fdin);
 	int fdcount = select(1, &fdin, 0, 0, &timeout);
 	if (fdcount == 0)
 	{
@@ -653,6 +680,7 @@ unsigned TTYGetKeys(unsigned maxKeys, unsigned *keys, unsigned millisToWait)
 	ssize_t newChars = 0;
 	if (fdcount == 1)
 	{
+		assert(inBufUsed <= sizeof inBuffer);
 		newChars = read(0, inBuffer + inBufUsed, sizeof inBuffer - inBufUsed);
 		assert(newChars != -1);
 		if (newChars == -1)
@@ -686,6 +714,7 @@ unsigned TTYGetKeys(unsigned maxKeys, unsigned *keys, unsigned millisToWait)
 		{
 			inBufUsed = 0;
 			if (escaped)
+			{
 				if (newChars)
 				{
 					gettimeofday(&partialSeqStartTime, 0);
@@ -694,6 +723,7 @@ unsigned TTYGetKeys(unsigned maxKeys, unsigned *keys, unsigned millisToWait)
 				}
 				else
 					keys[keyCount++] = ESC;
+			}
 			//fprintf(stderr, "input cleared\n");
 			return keyCount;
 		}

@@ -1,11 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <pvideo.h>
-#include <duiwin.h>
-#include <pkeybrd.h>
-#include <duimenu.h>
-#include <common.h>
+#include "pvideo.h"
+#include "duiwin.h"
+#include "duimenu.h"
+#include "common.h"
 
 /*-----------------------------------------------------------------------------
  */
@@ -120,11 +119,11 @@ int MenuKey(int n)
 	retCode = ProcessMenu(m);
 	DeleteMenu(m);
 	FreeMenuSystem(m);
-   DisplayViews();
+	DisplayViews();
 	if (retCode != -1 && retCode != -2)
 		retCode = functionTable[retCode].nonr == 0?
-			  (*(functionTable[retCode].rept))(n):
-			  (*(functionTable[retCode].nonr))();
+				(*(functionTable[retCode].rept))(n):
+				(*(functionTable[retCode].nonr))();
 	return retCode;
 }
 

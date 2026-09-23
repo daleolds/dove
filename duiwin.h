@@ -2,7 +2,7 @@
 #define DUIWIN_H 1
 
 #include <stddef.h>
-#include <pvideo.h>
+#include "pvideo.h"
 
 /*---------------------------------------------------------------------------
  * possible border types

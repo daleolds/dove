@@ -2,9 +2,9 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include <pfileio.h>
-#include <duiwin.h>
-#include <cfgtable.h>
+#include "pfileio.h"
+#include "duiwin.h"
+#include "cfgtable.h"
 
 /*-----------------------------------------------------------------------------
 * constants
@@ -21,7 +21,7 @@
  * begin at the header line (which is the last line of the
  * buffer). This line is pointed to by the "Buffer". Each line contains a
  * the number of bytes in the line (the "used" size), the size of the text
- * array, and the text. 
+ * array, and the text.
  */
 class Line
 {
@@ -72,7 +72,7 @@ struct Position
 		if (offset == line->offsetofEOL()) { line = line->forw(); offset = 0; }
 		else ++offset;
 	}
-	
+
 	void operator--()
 	{
 		if (offset == 0) { line = line->back(); offset = line->offsetofEOL(); }
@@ -224,6 +224,7 @@ void SetBuffer(Buffer *bp);
 bool SetBufferChanged();
 
 /* cursor */
+int MoveBackChars(int n);
 int GoToBOLKey(void);
 int BackCharKey(int n);
 int GoToEOLKey(void);
@@ -351,7 +352,7 @@ int HelpKey(void);
 /* search */
 int ReplaceKey(int n);
 int QueryReplaceKey(int n);
-int ForwSearchKey(int n); 
+int ForwSearchKey(int n);
 int GlobalReplaceKey(int n);
 int GlobalQueryReplaceKey(int n);
 int GlobalSearchKey(int n);
