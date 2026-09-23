@@ -7,17 +7,6 @@
 #include "duiwin.h"
 #include "common.h"
 
-#if defined(WC10_5_WIN32)
-#define _IS_SP _SPACE
-#define _IS_DIG _DIGIT
-#define _IS_UPP _UPPER
-#define _IS_LOW _LOWER
-#define _IS_HEX _XDIGT
-#define _IS_CTL _CNTRL
-#define _IS_PUN _PUNCT
-#define  _ctype _IsTable
-#endif
-
 /*--------------------------------------------------------------------------
  * Display the current position of the cursor,
  * in origin 1 X-Y coordinates, the character that is

@@ -25,11 +25,7 @@ typedef unsigned char VBYTE;
 /*-----------------------------------------------------------------------------
  * types
  */
-#if defined(DOVE_FOR_DOS) || defined(DOVE_FOR_GNU)
 typedef struct VCHAR { VBYTE c, a; } VCHAR;
-#else
-typedef struct VCHAR { VBYTE c, fill; unsigned short a; } VCHAR;
-#endif
 
 /*-----------------------------------------------------------------------------
  * function prototypes and globals

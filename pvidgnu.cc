@@ -1,5 +1,3 @@
-#if defined(DOVE_FOR_GNU)
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -756,4 +754,3 @@ void VideoPutZone(unsigned row, unsigned col, unsigned high, unsigned wide,
 }
 
 /* =================================================================== */
-#endif

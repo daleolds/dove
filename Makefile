@@ -5,17 +5,7 @@ ifeq ($(ODIR),$(notdir $(CURDIR)))
 VERSION = "2.2.29"
 #DEBUG = "debug"
 
-ifeq ($(OS),Windows_NT)
-TARGET = dove.exe
-PLAT = WIN32
-MOD = w32
-LDFLAGS =
-else
 TARGET = dove
-PLAT = GNU
-MOD = gnu
-LDFLAGS =
-endif
 
 ifdef DEBUG
 OPT = -g
@@ -26,13 +16,13 @@ STRIP = @strip $(TARGET)
 endif
 
 CPPFLAGS = $(OPT) -fno-exceptions -fno-rtti -Wall -Werror -Wno-parentheses \
-	-Wno-sign-compare -I$(SRCDIR) -DDOVE_FOR_$(PLAT) -D__STDC_LIMIT_MACROS \
+	-Wno-sign-compare -I$(SRCDIR) -D__STDC_LIMIT_MACROS \
 	-DVERSION=\"$(VERSION)$(DEBUG)\"
 
 SRCS = buffer.cc cfgbind.cc cfgcolor.cc cfgmain.cc cfgmode.cc cfgsampl.cc \
 	cfgtable.cc cursor.cc display.cc duimenu.cc duiwin.cc file.cc keybrd.cc \
-	kill.cc line.cc main.cc mark.cc menu.cc misc.cc msgline.cc pfile$(MOD).cc \
-	pkeyb$(MOD).cc popup.cc pvid$(MOD).cc search.cc type.cc view.cc
+	kill.cc line.cc main.cc mark.cc menu.cc misc.cc msgline.cc pfilegnu.cc \
+	pkeybgnu.cc popup.cc pvidgnu.cc search.cc type.cc view.cc
 
 vpath %.cc $(SRCDIR)
 vpath %.h $(SRCDIR)
@@ -41,7 +31,7 @@ vpath %.h $(SRCDIR)
 all: $(TARGET)
 
 $(TARGET): $(SRCS:%.cc=%.o)
-	@echo linking $@; g++ -o $@ $^ $(LDFLAGS)
+	@echo linking $@; g++ -o $@ $^
 	$(STRIP)
 
 clean:

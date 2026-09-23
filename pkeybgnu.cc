@@ -1,5 +1,3 @@
-#if defined(DOVE_FOR_GNU)
-
 #include <assert.h>
 #include <pvideo.h>
 #include <pkeybrd.h>
@@ -40,4 +38,3 @@ void UngetKey(unsigned key)
 }
 
 //===========================================================================
-#endif
