@@ -2,7 +2,7 @@ ODIR=obj
 ifeq ($(ODIR),$(notdir $(CURDIR)))
 #----------------------------------------------------------------------------
 
-VERSION = "2.2.29"
+VERSION = "2.2.30"
 #DEBUG = "debug"
 
 TARGET = dove
