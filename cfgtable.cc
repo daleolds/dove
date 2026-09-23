@@ -65,11 +65,8 @@ CONFIGINFO cfg =
 {
 	"DOVE Configuration File.\r\n\x1A",
 	1,													/* configVersion */
-	MODE_INDENT | MODE_CASESENSITIVE | MODE_INSERT | MODE_REALTABS
-#if !defined(DOVE_FOR_GNU)
-	| MODE_CR_LF
-#endif
-	, { 4 /* tabSize */, 0	/* wordWrapCol */	},
+	MODE_INDENT | MODE_CASESENSITIVE | MODE_INSERT | MODE_REALTABS,
+	{ 4 /* tabSize */, 0	/* wordWrapCol */	},
 
 	/* default colors */
 	{

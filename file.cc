@@ -298,11 +298,7 @@ int WildEdit(const char *fspec, bool create)
  * DOVEPATH environment variable.
  * Returns number of buffers created or already existing.
  */
-#if defined(DOVE_FOR_GNU)
 const char envPathDelimiter = ':';
-#else
-const char envPathDelimiter = ';';
-#endif
 
 int WildPathEdit(const char *fspec)
 {

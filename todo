@@ -13,7 +13,6 @@ handle padding if present
 resolve terminfo deficiencies: just need key names bound to functions,
 	intermediate form of esc seq is necessary, are capabilities?
 line drawing and line overflow uses PC byte values, need to abstract
-ensure win32 and dos versions work
 
 Bugs:
 	non-cr-lf files still get cr sometimes, check auto-indent
@@ -23,15 +22,13 @@ Bugs:
 	search and replace loses dotrow
 	empty line is selected like a tab
 
-handle close and break events in win32
-support windows clipboard
 move dovepath to per-directory
 
 . more history lists
 
 .	Needed functions:
 		Save all changed with out exiting.
-		Improved DOS/SHELL access functions.
+		Improved shell access functions.
 .	Remove functions that could be done with macros, like Dyslexic key.
 .	Add multiple .cfg files to emulate other editors.
 .	Add option to autoindent mode to indent as far as possible, such

@@ -1,5 +1,3 @@
-#if defined(DOVE_FOR_GNU)
-
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -254,4 +252,3 @@ size_t FileWrite(int handle, const void *data, size_t size)
 }
 
 /*===========================================================================*/
-#endif
