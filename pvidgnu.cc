@@ -258,6 +258,7 @@ static void TTFlush()
 		ssize_t len = TTBufp - TTBuffer;
 		ssize_t wlen = len? write(1, TTBuffer, len): 0;
 		assert(wlen != -1);
+		(void)wlen;
 		//if (wlen != len) fprintf(stderr, "flush write expected: %ld, got %ld\n", len, wlen);
 		TTBufp = TTBufHeadEnd = TTBuffer;
 	}
